@@ -70,7 +70,7 @@ jobs:
           cp "target/${target}/release/codex-unleashed" "${dest}/codex-${target}"
           zstd -T0 -19 --rm "${dest}/codex-${target}"
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
           path: codex-rs/dist/${{ matrix.target }}/*
@@ -121,7 +121,7 @@ jobs:
           zstd -T0 -19 --rm "${dest}/codex-windows-sandbox-setup-${target}.exe"
           zstd -T0 -19 --rm "${dest}/codex-command-runner-${target}.exe"
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
           path: codex-rs/dist/${{ matrix.target }}/*

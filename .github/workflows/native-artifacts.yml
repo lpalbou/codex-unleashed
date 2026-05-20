@@ -1,0 +1,128 @@
+name: native-artifacts
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: native-artifacts-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-unix:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: codex-rs
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+          - runner: macos-13
+            target: x86_64-apple-darwin
+          - runner: macos-15
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: dtolnay/rust-toolchain@a0b273b48ed29de4470960879e8381ff45632f26 # 1.93.0
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux build tools
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            libcap-dev musl-tools pkg-config zstd
+
+      - name: Install macOS build tools
+        if: ${{ runner.os == 'macOS' }}
+        run: brew install zstd
+
+      - name: Configure musl build environment
+        if: ${{ contains(matrix.target, 'musl') }}
+        run: |
+          set -euo pipefail
+          echo "AWS_LC_SYS_NO_JITTER_ENTROPY=1" >> "$GITHUB_ENV"
+          target_no_jitter="AWS_LC_SYS_NO_JITTER_ENTROPY_${{ matrix.target }}"
+          target_no_jitter="${target_no_jitter//-/_}"
+          echo "${target_no_jitter}=1" >> "$GITHUB_ENV"
+
+      - name: Build native CLI
+        run: cargo build --target ${{ matrix.target }} --release --bin codex-unleashed
+
+      - name: Stage compressed artifact
+        run: |
+          set -euo pipefail
+          target="${{ matrix.target }}"
+          dest="dist/${target}"
+          mkdir -p "${dest}"
+          cp "target/${target}/release/codex-unleashed" "${dest}/codex-${target}"
+          zstd -T0 -19 --rm "${dest}/codex-${target}"
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: ${{ matrix.target }}
+          path: codex-rs/dist/${{ matrix.target }}/*
+          if-no-files-found: error
+
+  build-windows:
+    name: build ${{ matrix.target }}
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+        working-directory: codex-rs
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: dtolnay/rust-toolchain@a0b273b48ed29de4470960879e8381ff45632f26 # 1.93.0
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install zstd
+        shell: powershell
+        run: choco install zstandard -y
+
+      - name: Build native Windows binaries
+        run: |
+          cargo build --target ${{ matrix.target }} --release \
+            --bin codex-unleashed \
+            --bin codex-windows-sandbox-setup \
+            --bin codex-command-runner
+
+      - name: Stage compressed artifacts
+        run: |
+          set -euo pipefail
+          target="${{ matrix.target }}"
+          dest="dist/${target}"
+          mkdir -p "${dest}"
+          cp "target/${target}/release/codex-unleashed.exe" "${dest}/codex-${target}.exe"
+          cp "target/${target}/release/codex-windows-sandbox-setup.exe" "${dest}/codex-windows-sandbox-setup-${target}.exe"
+          cp "target/${target}/release/codex-command-runner.exe" "${dest}/codex-command-runner-${target}.exe"
+          zstd -T0 -19 --rm "${dest}/codex-${target}.exe"
+          zstd -T0 -19 --rm "${dest}/codex-windows-sandbox-setup-${target}.exe"
+          zstd -T0 -19 --rm "${dest}/codex-command-runner-${target}.exe"
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: ${{ matrix.target }}
+          path: codex-rs/dist/${{ matrix.target }}/*
+          if-no-files-found: error

@@ -1,0 +1,44 @@
+# Codex Unleashed LLM Context
+
+Codex Unleashed is a public fork of OpenAI Codex CLI. It keeps the 0.87-era CLI
+lineage usable with current OpenAI model discovery, installs as
+`codex-unleashed`, and uses `~/.codex-unleashed` by default for user-scoped
+state.
+
+## Install
+
+```bash
+npm install -g @lpalbou/codex-unleashed
+```
+
+Source builds are supported with:
+
+```bash
+git clone https://github.com/lpalbou/codex-unleashed.git
+cd codex-unleashed/codex-rs
+cargo install --locked --path cli --bin codex-unleashed
+```
+
+## Public CI/CD
+
+The public repository is intentionally small in CI scope:
+
+- `ci.yml` validates package metadata, npm staging, documentation build, and a
+  Linux Rust CLI smoke check.
+- `docs.yml` builds the MkDocs site and deploys it to GitHub Pages.
+- `native-artifacts.yml` is manual and builds native binaries needed by npm
+  platform payload versions.
+- `npm-publish-codex-unleashed.yml` is manual, main-only, and publishes
+  `@lpalbou/codex-unleashed` through npm trusted publishing after bootstrap.
+
+## Maintainer release outline
+
+1. Run `native-artifacts.yml` from `main`.
+2. Run `npm-publish-codex-unleashed.yml` with `publish=false` and the native
+   artifact workflow URL.
+3. Review the generated `codex-unleashed-npm-<version>` tarball artifact.
+4. For the first package publication, publish the reviewed tarballs manually
+   from an npm-authenticated machine.
+5. Configure npm trusted publishing for repository `lpalbou/codex-unleashed`,
+   workflow `npm-publish-codex-unleashed.yml`, and environment `npm`.
+6. For future releases, run the npm workflow with `publish=true`.

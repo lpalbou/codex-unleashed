@@ -1,5 +1,5 @@
 param(
-    [string]$RepoUrl = $(if ($env:CODEX_UNLEASHED_REPO) { $env:CODEX_UNLEASHED_REPO } else { "https://github.com/lpalbou/codex.git" }),
+    [string]$RepoUrl = $(if ($env:CODEX_UNLEASHED_REPO) { $env:CODEX_UNLEASHED_REPO } else { "https://github.com/lpalbou/codex-unleashed.git" }),
     [string]$Ref = $(if ($env:CODEX_UNLEASHED_REF) { $env:CODEX_UNLEASHED_REF } else { "main" })
 )
 

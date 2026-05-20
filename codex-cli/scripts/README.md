@@ -20,5 +20,5 @@ When `--package codex` is provided, the staging helper builds the lightweight
 platform-specific dist-tags.
 
 If you need to invoke `build_npm_package.py` directly, run
-`codex-cli/scripts/install_native_deps.py --workflow-url <rust-release-run-url>` first and
+`codex-cli/scripts/install_native_deps.py --workflow-url <native-artifacts-run-url>` first and
 pass `--vendor-src` pointing to the directory that contains the populated `vendor/` tree.

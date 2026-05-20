@@ -1,0 +1,31 @@
+site_name: Codex Unleashed
+site_url: https://lpalbou.github.io/codex-unleashed/
+repo_url: https://github.com/lpalbou/codex-unleashed
+repo_name: lpalbou/codex-unleashed
+docs_dir: docs
+site_dir: site
+strict: true
+exclude_docs: |
+  README.md
+validation:
+  nav:
+    omitted_files: ignore
+  links:
+    unrecognized_links: ignore
+theme:
+  name: readthedocs
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Installing: install.md
+  - Configuration: config.md
+  - Authentication: authentication.md
+  - Sandboxing: sandbox.md
+  - Slash commands: slash_commands.md
+  - npm publishing: npm-publishing.md
+  - Troubleshooting: troubleshooting.md
+  - Contributing: contributing.md
+markdown_extensions:
+  - tables
+  - toc:
+      permalink: true

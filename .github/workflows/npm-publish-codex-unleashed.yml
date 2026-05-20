@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Semver version to stage or publish, for example 0.87.0 or 0.87.0-alpha.1."
+        description: "Package version to stage or publish. Must match codex-cli/package.json."
         required: true
         type: string
-      rust_release_workflow_url:
-        description: "Successful lpalbou/codex rust-release workflow URL that produced native artifacts."
+      native_artifacts_workflow_url:
+        description: "Successful lpalbou/codex-unleashed native-artifacts workflow URL."
         required: true
         type: string
       publish:
@@ -40,27 +40,35 @@ jobs:
       should_publish: ${{ steps.publish_mode.outputs.should_publish }}
       version: ${{ steps.version.outputs.version }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
       - name: Validate main branch and package identity
-        env:
-          EXPECTED_PACKAGE: "@lpalbou/codex-unleashed"
         run: |
           set -euo pipefail
-
           if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
             echo "::error title=Wrong branch::Run this workflow from main only."
             exit 1
           fi
-
-          actual_package="$(node -p "require('./codex-cli/package.json').name")"
-          if [[ "${actual_package}" != "${EXPECTED_PACKAGE}" ]]; then
-            echo "::error title=Unexpected package::Expected ${EXPECTED_PACKAGE}, got ${actual_package}."
-            exit 1
-          fi
+          node <<'NODE'
+          const pkg = require("./codex-cli/package.json");
+          if (pkg.name !== "@lpalbou/codex-unleashed") {
+            throw new Error(`unexpected package name: ${pkg.name}`);
+          }
+          if (!pkg.repository || pkg.repository.url !== "git+https://github.com/lpalbou/codex-unleashed.git") {
+            throw new Error("package repository.url must match lpalbou/codex-unleashed");
+          }
+          if (!pkg.publishConfig || pkg.publishConfig.access !== "public") {
+            throw new Error("publishConfig.access must be public");
+          }
+          NODE
 
       - name: Validate version
         id: version
@@ -68,19 +76,21 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-
+          package_version="$(node -p "require('./codex-cli/package.json').version")"
+          if [[ "${VERSION}" != "${package_version}" ]]; then
+            echo "::error title=Version mismatch::Input ${VERSION} must match codex-cli/package.json ${package_version}."
+            exit 1
+          fi
           if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)(\.[0-9]+)?)?$ ]]; then
             echo "::error title=Invalid version::Use x.y.z, x.y.z-alpha.N, or x.y.z-beta.N."
             exit 1
           fi
-
           npm_tag=""
           if [[ "${VERSION}" =~ -alpha(\.|$) ]]; then
             npm_tag="alpha"
           elif [[ "${VERSION}" =~ -beta(\.|$) ]]; then
             npm_tag="beta"
           fi
-
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "npm_tag=${npm_tag}" >> "$GITHUB_OUTPUT"
 
@@ -92,7 +102,6 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-
           if [[ "${PUBLISH}" == "true" ]]; then
             expected="publish-lpalbou-codex-unleashed-${VERSION}"
             if [[ "${CONFIRMATION}" != "${expected}" ]]; then
@@ -107,62 +116,36 @@ jobs:
       - name: Validate native artifact workflow
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-          WORKFLOW_URL: ${{ inputs.rust_release_workflow_url }}
+          WORKFLOW_URL: ${{ inputs.native_artifacts_workflow_url }}
         run: |
           set -euo pipefail
-
-          if [[ ! "${WORKFLOW_URL}" =~ ^https://github\.com/lpalbou/codex/actions/runs/[0-9]+/?$ ]]; then
-            echo "::error title=Invalid workflow URL::Use a lpalbou/codex Actions run URL."
+          if [[ ! "${WORKFLOW_URL}" =~ ^https://github\.com/lpalbou/codex-unleashed/actions/runs/[0-9]+/?$ ]]; then
+            echo "::error title=Invalid workflow URL::Use a lpalbou/codex-unleashed Actions run URL."
             exit 1
           fi
-
           run_id="${WORKFLOW_URL%/}"
           run_id="${run_id##*/}"
-
-          run_name="$(gh run view "${run_id}" --repo lpalbou/codex --json name --jq .name)"
-          run_conclusion="$(gh run view "${run_id}" --repo lpalbou/codex --json conclusion --jq .conclusion)"
-          run_head_sha="$(gh run view "${run_id}" --repo lpalbou/codex --json headSha --jq .headSha)"
-
-          if [[ "${run_name}" != "rust-release" ]]; then
-            echo "::error title=Unexpected workflow::Expected rust-release, got ${run_name}."
+          run_name="$(gh run view "${run_id}" --repo lpalbou/codex-unleashed --json name --jq .name)"
+          run_conclusion="$(gh run view "${run_id}" --repo lpalbou/codex-unleashed --json conclusion --jq .conclusion)"
+          run_head_sha="$(gh run view "${run_id}" --repo lpalbou/codex-unleashed --json headSha --jq .headSha)"
+          if [[ "${run_name}" != "native-artifacts" ]]; then
+            echo "::error title=Unexpected workflow::Expected native-artifacts, got ${run_name}."
             exit 1
           fi
-
           if [[ "${run_conclusion}" != "success" ]]; then
             echo "::error title=Workflow not successful::Run ${run_id} concluded with ${run_conclusion}."
             exit 1
           fi
-
-          git fetch origin main
-          if ! git merge-base --is-ancestor "${run_head_sha}" origin/main; then
-            echo "::error title=Artifact commit not on main::Run ${run_id} was not built from main history."
+          if [[ "${run_head_sha}" != "${GITHUB_SHA}" ]]; then
+            echo "::error title=Artifact commit mismatch::Native artifacts were built from ${run_head_sha}, but this publish run is ${GITHUB_SHA}."
             exit 1
           fi
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
-        with:
-          run_install: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
-        with:
-          node-version: 24
-          registry-url: "https://registry.npmjs.org"
-          package-manager-cache: false
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install DotSlash
-        uses: facebook/install-dotslash@1e4e7b3e07eaca387acb98f1d4720e0bee8dbb6a # v2
 
       - name: Stage npm tarballs
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
-          WORKFLOW_URL: ${{ inputs.rust_release_workflow_url }}
+          WORKFLOW_URL: ${{ inputs.native_artifacts_workflow_url }}
         run: |
           set -euo pipefail
           mkdir -p dist/npm
@@ -174,29 +157,24 @@ jobs:
 
       - name: Validate staged tarballs
         env:
-          EXPECTED_PACKAGE: "@lpalbou/codex-unleashed"
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
           shopt -s nullglob
-
           tarballs=(dist/npm/*.tgz)
           if [[ ${#tarballs[@]} -ne 7 ]]; then
-            echo "::error title=Unexpected tarball count::Expected 7 codex-unleashed tarballs, found ${#tarballs[@]}."
+            echo "::error title=Unexpected tarball count::Expected 7 Codex Unleashed tarballs, found ${#tarballs[@]}."
             printf '%s\n' "${tarballs[@]}"
             exit 1
           fi
-
           for tarball in "${tarballs[@]}"; do
             package_json="$(tar -xOf "${tarball}" package/package.json)"
             package_name="$(node -e 'const fs = require("node:fs"); console.log(JSON.parse(fs.readFileSync(0, "utf8")).name);' <<< "${package_json}")"
             package_version="$(node -e 'const fs = require("node:fs"); console.log(JSON.parse(fs.readFileSync(0, "utf8")).version);' <<< "${package_json}")"
-
-            if [[ "${package_name}" != "${EXPECTED_PACKAGE}" ]]; then
+            if [[ "${package_name}" != "@lpalbou/codex-unleashed" ]]; then
               echo "::error title=Unexpected tarball package::${tarball} contains ${package_name}."
               exit 1
             fi
-
             case "${package_version}" in
               "${VERSION}"|"${VERSION}"-linux-*|"${VERSION}"-darwin-*|"${VERSION}"-win32-*) ;;
               *)
@@ -204,12 +182,10 @@ jobs:
                 exit 1
                 ;;
             esac
-
             npm publish --dry-run "${tarball}" --access public
           done
 
-      - name: Upload npm tarballs
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: codex-unleashed-npm-${{ steps.version.outputs.version }}
           path: dist/npm/*.tgz
@@ -220,14 +196,15 @@ jobs:
     needs: stage
     if: ${{ needs.stage.outputs.should_publish == 'true' }}
     runs-on: ubuntu-latest
-    environment: npm
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@lpalbou/codex-unleashed
     permissions:
       actions: read
       contents: read
       id-token: write
     steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
@@ -236,44 +213,37 @@ jobs:
       - name: Update npm
         run: npm install -g npm@latest
 
-      - name: Download npm tarballs
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: codex-unleashed-npm-${{ needs.stage.outputs.version }}
           path: dist/npm
 
       - name: Publish to npm
         env:
-          NPM_CONFIG_PROVENANCE: "true"
           NPM_TAG: ${{ needs.stage.outputs.npm_tag }}
           VERSION: ${{ needs.stage.outputs.version }}
         run: |
           set -euo pipefail
           shopt -s nullglob
-
           platform_tarballs=(
             dist/npm/codex-npm-linux-*-"${VERSION}".tgz
             dist/npm/codex-npm-darwin-*-"${VERSION}".tgz
             dist/npm/codex-npm-win32-*-"${VERSION}".tgz
           )
           meta_tarball="dist/npm/codex-npm-${VERSION}.tgz"
-
           if [[ ${#platform_tarballs[@]} -ne 6 ]]; then
             echo "::error title=Unexpected platform tarball count::Expected 6, found ${#platform_tarballs[@]}."
             printf '%s\n' "${platform_tarballs[@]}"
             exit 1
           fi
-
           if [[ ! -f "${meta_tarball}" ]]; then
             echo "::error title=Missing meta package::Expected ${meta_tarball}."
             exit 1
           fi
-
           tarballs=("${platform_tarballs[@]}" "${meta_tarball}")
           for tarball in "${tarballs[@]}"; do
             filename="$(basename "${tarball}")"
             tag=""
-
             case "${filename}" in
               codex-npm-linux-*-"${VERSION}".tgz|codex-npm-darwin-*-"${VERSION}".tgz|codex-npm-win32-*-"${VERSION}".tgz)
                 platform="${filename#codex-npm-}"
@@ -291,27 +261,10 @@ jobs:
                 exit 1
                 ;;
             esac
-
             publish_cmd=(npm publish "${GITHUB_WORKSPACE}/${tarball}" --access public)
             if [[ -n "${tag}" ]]; then
               publish_cmd+=(--tag "${tag}")
             fi
-
             echo "+ ${publish_cmd[*]}"
-            set +e
-            publish_output="$("${publish_cmd[@]}" 2>&1)"
-            publish_status=$?
-            set -e
-
-            echo "${publish_output}"
-            if [[ ${publish_status} -eq 0 ]]; then
-              continue
-            fi
-
-            if grep -qiE "previously published|cannot publish over|version already exists" <<< "${publish_output}"; then
-              echo "Skipping already-published package version for ${filename}"
-              continue
-            fi
-
-            exit "${publish_status}"
+            "${publish_cmd[@]}"
           done

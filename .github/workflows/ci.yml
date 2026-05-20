@@ -1,68 +1,111 @@
 name: ci
 
 on:
-  pull_request: {}
-  push: { branches: [main] }
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  build-test:
+  npm-and-docs:
+    name: npm metadata and docs
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      NODE_OPTIONS: --max-old-space-size=4096
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Verify codex-rs Cargo manifests inherit workspace settings
-        run: python3 .github/scripts/verify_cargo_workspace_manifests.py
-
-      - name: Verify Bazel clippy flags match Cargo workspace lints
-        run: python3 .github/scripts/verify_bazel_clippy_lints.py
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
-          run_install: false
+          node-version: 24
+          package-manager-cache: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
         with:
-          node-version: 22
+          python-version: "3.13"
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Stage npm package metadata
-        id: stage_npm_package
+      - name: Validate npm package identity
         run: |
           set -euo pipefail
-          CODEX_VERSION=0.0.0-ci
-          OUTPUT_DIR="${RUNNER_TEMP}"
-          STAGING_DIR="${RUNNER_TEMP}/codex-unleashed-npm-stage"
-          PACK_OUTPUT="${OUTPUT_DIR}/codex-unleashed-npm-${CODEX_VERSION}.tgz"
+          node <<'NODE'
+          const pkg = require("./codex-cli/package.json");
+          const expected = {
+            name: "@lpalbou/codex-unleashed",
+            version: "0.1.0",
+            bin: "codex-unleashed",
+            repository: "git+https://github.com/lpalbou/codex-unleashed.git",
+          };
+          if (pkg.name !== expected.name) {
+            throw new Error(`unexpected package name: ${pkg.name}`);
+          }
+          if (pkg.version !== expected.version) {
+            throw new Error(`unexpected package version: ${pkg.version}`);
+          }
+          if (!pkg.bin || pkg.bin[expected.bin] !== "bin/codex.js") {
+            throw new Error("codex-unleashed bin entry is missing");
+          }
+          if (!pkg.publishConfig || pkg.publishConfig.access !== "public") {
+            throw new Error("publishConfig.access must be public");
+          }
+          if (!pkg.repository || pkg.repository.url !== expected.repository) {
+            throw new Error(`repository.url must be ${expected.repository}`);
+          }
+          NODE
+
+      - name: Validate npm launcher syntax
+        run: node --check codex-cli/bin/codex.js
+
+      - name: Stage meta npm package
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./codex-cli/package.json').version")"
+          tmpdir="$(mktemp -d)"
           python3 ./codex-cli/scripts/build_npm_package.py \
             --package codex \
-            --version "$CODEX_VERSION" \
-            --staging-dir "$STAGING_DIR" \
-            --pack-output "$PACK_OUTPUT"
-          echo "pack_output=$PACK_OUTPUT" >> "$GITHUB_OUTPUT"
+            --version "${version}" \
+            --staging-dir "${tmpdir}/stage" \
+            --pack-output "${tmpdir}/codex-unleashed.tgz"
+          package_json="$(tar -xOf "${tmpdir}/codex-unleashed.tgz" package/package.json)"
+          PACKAGE_JSON="${package_json}" node <<'NODE'
+          const pkg = JSON.parse(process.env.PACKAGE_JSON);
+          if (pkg.name !== "@lpalbou/codex-unleashed") {
+            throw new Error(`unexpected packed name: ${pkg.name}`);
+          }
+          if (!pkg.optionalDependencies) {
+            throw new Error("packed meta package must declare platform optionalDependencies");
+          }
+          for (const name of Object.keys(pkg.optionalDependencies)) {
+            if (!name.startsWith("@lpalbou/codex-unleashed-")) {
+              throw new Error(`unexpected optional dependency alias: ${name}`);
+            }
+          }
+          NODE
 
-      - name: Upload staged npm package artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
-        with:
-          name: codex-unleashed-npm-staging
-          path: ${{ steps.stage_npm_package.outputs.pack_output }}
+      - name: Validate Python release scripts
+        run: |
+          python3 -m py_compile \
+            codex-cli/scripts/build_npm_package.py \
+            codex-cli/scripts/install_native_deps.py \
+            scripts/stage_npm_packages.py
 
-      - name: Ensure root README.md contains only ASCII and certain Unicode code points
-        run: ./scripts/asciicheck.py README.md
-      - name: Check root README ToC
-        run: python3 scripts/readme_toc.py README.md
+      - name: Build documentation
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install mkdocs
+          mkdocs build --strict
 
-      - name: Ensure codex-cli/README.md contains only ASCII and certain Unicode code points
-        run: ./scripts/asciicheck.py codex-cli/README.md
-      - name: Check codex-cli/README ToC
-        run: python3 scripts/readme_toc.py codex-cli/README.md
-
-      - name: Prettier (run `pnpm run format:fix` to fix)
-        run: pnpm run format
+  rust-smoke:
+    name: rust cli smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: dtolnay/rust-toolchain@a0b273b48ed29de4470960879e8381ff45632f26 # 1.93.0
+      - name: Cargo check codex-unleashed
+        working-directory: codex-rs
+        run: cargo check -p codex-cli --bin codex-unleashed

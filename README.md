@@ -18,13 +18,13 @@ npm install -g @lpalbou/codex-unleashed
 macOS/Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/lpalbou/codex/main/scripts/install/codex-unleashed.sh | sh
+curl -fsSL https://raw.githubusercontent.com/lpalbou/codex-unleashed/main/scripts/install/codex-unleashed.sh | sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/lpalbou/codex/main/scripts/install/codex-unleashed.ps1 | iex
+irm https://raw.githubusercontent.com/lpalbou/codex-unleashed/main/scripts/install/codex-unleashed.ps1 | iex
 ```
 
 The installer builds from source, so it requires `git`, `cargo`, and a Rust
@@ -54,6 +54,7 @@ catalog entries.
 ## Docs
 
 - [Installing and building](./docs/install.md)
+- [Documentation index](./docs/README.md)
 - [npm publishing](./docs/npm-publishing.md)
 - [Configuration](./docs/config.md)
 - [Authentication](./docs/authentication.md)

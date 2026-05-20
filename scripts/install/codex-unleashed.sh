@@ -2,7 +2,7 @@
 
 set -eu
 
-REPO_URL="${CODEX_UNLEASHED_REPO:-https://github.com/lpalbou/codex.git}"
+REPO_URL="${CODEX_UNLEASHED_REPO:-https://github.com/lpalbou/codex-unleashed.git}"
 REF="${CODEX_UNLEASHED_REF:-main}"
 BIN_NAME="codex-unleashed"
 

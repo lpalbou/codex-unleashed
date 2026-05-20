@@ -26,13 +26,13 @@ Unleashed state in `~/.codex-unleashed`, so it can live beside upstream
 macOS/Linux:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/lpalbou/codex/main/scripts/install/codex-unleashed.sh | sh
+curl -fsSL https://raw.githubusercontent.com/lpalbou/codex-unleashed/main/scripts/install/codex-unleashed.sh | sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/lpalbou/codex/main/scripts/install/codex-unleashed.ps1 | iex
+irm https://raw.githubusercontent.com/lpalbou/codex-unleashed/main/scripts/install/codex-unleashed.ps1 | iex
 ```
 
 The installer clones this repository and runs:
@@ -48,8 +48,8 @@ binary from the upstream OpenAI CLI.
 
 ```bash
 # Clone the repository and navigate to the root of the Cargo workspace.
-git clone https://github.com/lpalbou/codex.git
-cd codex/codex-rs
+git clone https://github.com/lpalbou/codex-unleashed.git
+cd codex-unleashed/codex-rs
 
 # Install the Rust toolchain, if necessary.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y

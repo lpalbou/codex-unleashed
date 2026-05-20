@@ -50,6 +50,10 @@ original `main` branch only linked to upstream OpenAI Codex release notes.
 - Keep 0.87-era source and local builds compatible with current OpenAI model
   discovery by sending a `/models` client-version compatibility floor while
   preserving the user-visible package version.
+- Build Linux npm native payloads for the GNU Linux targets used by the Rust
+  dependency graph, while keeping the public npm package names
+  `@lpalbou/codex-unleashed-linux-x64` and
+  `@lpalbou/codex-unleashed-linux-arm64`.
 
 ### Compatibility Notes
 

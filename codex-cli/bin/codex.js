@@ -13,8 +13,8 @@ const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
 const PLATFORM_PACKAGE_BY_TARGET = {
-  "x86_64-unknown-linux-musl": "@lpalbou/codex-unleashed-linux-x64",
-  "aarch64-unknown-linux-musl": "@lpalbou/codex-unleashed-linux-arm64",
+  "x86_64-unknown-linux-gnu": "@lpalbou/codex-unleashed-linux-x64",
+  "aarch64-unknown-linux-gnu": "@lpalbou/codex-unleashed-linux-arm64",
   "x86_64-apple-darwin": "@lpalbou/codex-unleashed-darwin-x64",
   "aarch64-apple-darwin": "@lpalbou/codex-unleashed-darwin-arm64",
   "x86_64-pc-windows-msvc": "@lpalbou/codex-unleashed-win32-x64",
@@ -31,10 +31,10 @@ switch (platform) {
   case "android":
     switch (arch) {
       case "x64":
-        targetTriple = "x86_64-unknown-linux-musl";
+        targetTriple = "x86_64-unknown-linux-gnu";
         break;
       case "arm64":
-        targetTriple = "aarch64-unknown-linux-musl";
+        targetTriple = "aarch64-unknown-linux-gnu";
         break;
       default:
         break;

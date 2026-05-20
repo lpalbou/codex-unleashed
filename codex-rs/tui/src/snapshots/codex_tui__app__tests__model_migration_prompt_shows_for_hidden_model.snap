@@ -1,0 +1,11 @@
+---
+source: tui/src/app.rs
+expression: model_migration_copy_to_plain_text(&copy)
+---
+Introducing GPT-5.5
+
+Codex can now use GPT-5.5, OpenAI's newest frontier model for complex coding and professional work. It supports the same API features as GPT-5.4, including hosted tools, tool search, compaction, and phase handling.
+
+Learn more: https://developers.openai.com/api/docs/guides/latest-model
+
+You can keep using your current model if you prefer.

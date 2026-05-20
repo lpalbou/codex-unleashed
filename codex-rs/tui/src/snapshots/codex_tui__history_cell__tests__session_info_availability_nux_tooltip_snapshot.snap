@@ -1,0 +1,18 @@
+---
+source: tui/src/history_cell.rs
+expression: rendered
+---
+╭─────────────────────────────────────────────────────────╮
+│ >_ Open Codex Unleashed (v0.1.0)                        │
+│                                                         │
+│ Fork of OpenAI Codex v0.87.0 by Laurent-Philippe Albou. │
+│ Controls model, reasoning, agent spawning, and /save    │
+│ exports.                                                │
+│ source: https://github.com/lpalbou/codex                │
+│ date: <DATE>                                            │
+│                                                         │
+│ model:     gpt-5   /model to change                     │
+│ directory: /tmp/project                                 │
+╰─────────────────────────────────────────────────────────╯
+
+  Tip: Model just became available

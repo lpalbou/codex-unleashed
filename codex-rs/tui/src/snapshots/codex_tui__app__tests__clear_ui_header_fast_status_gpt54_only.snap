@@ -1,0 +1,16 @@
+---
+source: tui/src/app.rs
+expression: rendered
+---
+╭─────────────────────────────────────────────────────────╮
+│ >_ Open Codex Unleashed (v<VERSION>)                    │
+│                                                         │
+│ Fork of OpenAI Codex v0.87.0 by Laurent-Philippe Albou. │
+│ Controls model, reasoning, agent spawning, and /save    │
+│ exports.                                                │
+│ source: https://github.com/lpalbou/codex                │
+│ date: <DATE>                                            │
+│                                                         │
+│ model:     gpt-5.4 xhigh   fast   /model to change      │
+│ directory: /tmp/project                                 │
+╰─────────────────────────────────────────────────────────╯

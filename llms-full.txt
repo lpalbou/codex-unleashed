@@ -5,6 +5,24 @@ lineage usable with current OpenAI model discovery, installs as
 `codex-unleashed`, and uses `~/.codex-unleashed` by default for user-scoped
 state.
 
+## Rationale
+
+Codex Unleashed preserves a depth-first terminal workflow for long-running
+agentic coding. Later upstream Codex lines increasingly emphasize faster
+iteration, richer orchestration, and more multi-agent coordination. Those are
+valid directions, but they introduce context-sharing and accountability
+tradeoffs: each agent needs clear context, ownership, permissions, model, effort,
+and working directory. If those details are hidden or overly automatic, work can
+be faster while feeling less coherent.
+
+The agency concern is weaker continuity in hard tasks, not lower raw model
+capability. Dispatch, retries, summaries, and handoffs need clear context
+contracts before they help deep work.
+
+This fork keeps the 0.87-era CLI recognizable, isolates its command and state
+directory from upstream `codex`, suppresses upstream update prompts that do not
+apply to the fork, and makes model/cost/reasoning choices explicit.
+
 ## Install
 
 ```bash

@@ -1,12 +1,15 @@
 # Codex Unleashed
 
 Codex Unleashed is a public fork of OpenAI Codex CLI that installs as
-`codex-unleashed` and stores user state in `~/.codex-unleashed`.
+`codex-unleashed` and stores user state in `~/.codex-unleashed`. It preserves a
+depth-first 0.87-era terminal workflow while keeping current model discovery and
+explicit model/reasoning choices.
 
 ## Key files
 
 - `README.md`: project overview and install commands.
 - `docs/README.md`: documentation index.
+- `docs/rationale.md`: why the fork exists and what tradeoffs it preserves.
 - `docs/install.md`: npm and source installation.
 - `docs/config.md`: configuration and state-home behavior.
 - `docs/npm-publishing.md`: maintainer release workflow for

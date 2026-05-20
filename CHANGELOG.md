@@ -20,6 +20,9 @@ original `main` branch only linked to upstream OpenAI Codex release notes.
   package.
 - Add fork branding constants so the TUI header identifies the project as
   `Open Codex Unleashed`.
+- Add public rationale documentation explaining the fork's depth-first
+  0.87-lineage stance, side-by-side install policy, and explicit model/reasoning
+  tradeoffs.
 
 ### Changed
 

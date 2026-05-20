@@ -6,6 +6,16 @@ line experience while using current OpenAI model discovery.
 The public package installs as `codex-unleashed`, not `codex`, and stores
 user-scoped state in `~/.codex-unleashed` by default.
 
+## Why this exists
+
+Codex Unleashed preserves a depth-first terminal workflow for long-running
+agentic coding. It keeps model and reasoning choices explicit, avoids replacing
+upstream `codex`, and treats multi-agent orchestration as something that must
+preserve context and accountability rather than silently fragmenting work.
+The concern is weaker continuity in hard tasks, not lower raw model capability.
+
+Read the full [Rationale](rationale.md).
+
 ## Install
 
 ```bash

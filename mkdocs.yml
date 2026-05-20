@@ -16,6 +16,7 @@ theme:
   name: readthedocs
 nav:
   - Home: index.md
+  - Rationale: rationale.md
   - Getting started: getting-started.md
   - Installing: install.md
   - Configuration: config.md

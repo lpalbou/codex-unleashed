@@ -4,6 +4,7 @@ This directory is the source for the Codex Unleashed documentation site.
 
 ## User docs
 
+- [Rationale](rationale.md)
 - [Getting started](getting-started.md)
 - [Installing](install.md)
 - [Configuration](config.md)

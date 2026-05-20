@@ -17,10 +17,38 @@ work branches to use this workflow.
 Create a GitHub environment named `npm` and restrict publishing to the `main`
 branch. Add required reviewers if desired.
 
+The repository can be configured from a machine authenticated with `gh`:
+
+```bash
+gh api \
+  --method PUT \
+  -H "Accept: application/vnd.github+json" \
+  /repos/lpalbou/codex-unleashed/environments/npm \
+  -F deployment_branch_policy[protected_branches]=false \
+  -F deployment_branch_policy[custom_branch_policies]=true
+
+gh api \
+  --method POST \
+  -H "Accept: application/vnd.github+json" \
+  /repos/lpalbou/codex-unleashed/environments/npm/deployment-branch-policies \
+  -f name=main
+```
+
+GitHub Pages is built by `.github/workflows/docs.yml`. Enable Pages with GitHub
+Actions as the build source:
+
+```bash
+gh api \
+  --method POST \
+  -H "Accept: application/vnd.github+json" \
+  /repos/lpalbou/codex-unleashed/pages \
+  -f build_type=workflow
+```
+
 Configure npm trusted publishing for the package after the package exists:
 
 ```bash
-npm install -g npm@latest
+npm install -g npm@^11.10.0
 npm trust github @lpalbou/codex-unleashed \
   --repo lpalbou/codex-unleashed \
   --file npm-publish-codex-unleashed.yml \
@@ -88,6 +116,31 @@ gh workflow run npm-publish-codex-unleashed.yml \
   -f version=0.1.0 \
   -f native_artifacts_workflow_url=https://github.com/lpalbou/codex-unleashed/actions/runs/<run-id> \
   -f publish=false
+```
+
+Download the staged tarballs from the stage run:
+
+```bash
+gh run download <stage-run-id> \
+  --repo lpalbou/codex-unleashed \
+  --name codex-unleashed-npm-0.1.0 \
+  --dir dist/npm
+```
+
+First npm publication only:
+
+```bash
+npm login
+
+for tarball in \
+  dist/npm/codex-npm-linux-*-0.1.0.tgz \
+  dist/npm/codex-npm-darwin-*-0.1.0.tgz \
+  dist/npm/codex-npm-win32-*-0.1.0.tgz
+do
+  npm publish "$tarball" --access public
+done
+
+npm publish dist/npm/codex-npm-0.1.0.tgz --access public
 ```
 
 After trusted publishing is configured, publish:

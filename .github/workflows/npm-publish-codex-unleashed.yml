@@ -50,6 +50,8 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
+      - uses: facebook/install-dotslash@1e4e7b3e07eaca387acb98f1d4720e0bee8dbb6a # v2
+
       - name: Validate main branch and package identity
         run: |
           set -euo pipefail

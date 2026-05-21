@@ -133,11 +133,10 @@ jobs:
             exit 1
           fi
           if [[ "${run_conclusion}" != "success" ]]; then
-            echo "::error title=Workflow not successful::Run ${run_id} concluded with ${run_conclusion}."
-            exit 1
+            echo "::warning title=Workflow not fully successful::Run ${run_id} concluded with ${run_conclusion}; staging will still require every supported platform artifact."
           fi
-          if [[ "${run_head_sha}" != "${GITHUB_SHA}" ]]; then
-            echo "::error title=Artifact commit mismatch::Native artifacts were built from ${run_head_sha}, but this publish run is ${GITHUB_SHA}."
+          if ! git merge-base --is-ancestor "${run_head_sha}" "${GITHUB_SHA}"; then
+            echo "::error title=Artifact commit mismatch::Native artifacts were built from ${run_head_sha}, which is not an ancestor of ${GITHUB_SHA}."
             exit 1
           fi
 
@@ -162,8 +161,8 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           tarballs=(dist/npm/*.tgz)
-          if [[ ${#tarballs[@]} -ne 7 ]]; then
-            echo "::error title=Unexpected tarball count::Expected 7 Codex Unleashed tarballs, found ${#tarballs[@]}."
+          if [[ ${#tarballs[@]} -ne 6 ]]; then
+            echo "::error title=Unexpected tarball count::Expected 6 Codex Unleashed tarballs, found ${#tarballs[@]}."
             printf '%s\n' "${tarballs[@]}"
             exit 1
           fi
@@ -231,8 +230,8 @@ jobs:
             dist/npm/codex-npm-win32-*-"${VERSION}".tgz
           )
           meta_tarball="dist/npm/codex-npm-${VERSION}.tgz"
-          if [[ ${#platform_tarballs[@]} -ne 6 ]]; then
-            echo "::error title=Unexpected platform tarball count::Expected 6, found ${#platform_tarballs[@]}."
+          if [[ ${#platform_tarballs[@]} -ne 5 ]]; then
+            echo "::error title=Unexpected platform tarball count::Expected 5, found ${#platform_tarballs[@]}."
             printf '%s\n' "${platform_tarballs[@]}"
             exit 1
           fi

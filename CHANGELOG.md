@@ -51,9 +51,9 @@ original `main` branch only linked to upstream OpenAI Codex release notes.
   discovery by sending a `/models` client-version compatibility floor while
   preserving the user-visible package version.
 - Build Linux npm native payloads for the GNU Linux targets used by the Rust
-  dependency graph, while keeping the public npm package names
-  `@lpalbou/codex-unleashed-linux-x64` and
-  `@lpalbou/codex-unleashed-linux-arm64`.
+  dependency graph. The first npm release publishes Linux x64, macOS x64/ARM64,
+  and Windows x64/ARM64 payloads; Linux ARM64 is deferred until its native build
+  is reliable enough for release automation.
 
 ### Compatibility Notes
 

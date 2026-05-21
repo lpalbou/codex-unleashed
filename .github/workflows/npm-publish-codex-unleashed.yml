@@ -221,11 +221,13 @@ jobs:
 
       - name: Publish to npm
         env:
+          NPM_CONFIG_PROVENANCE: "true"
           NPM_TAG: ${{ needs.stage.outputs.npm_tag }}
           VERSION: ${{ needs.stage.outputs.version }}
         run: |
           set -euo pipefail
           shopt -s nullglob
+          package_name="@lpalbou/codex-unleashed"
           platform_tarballs=(
             dist/npm/codex-npm-linux-*-"${VERSION}".tgz
             dist/npm/codex-npm-darwin-*-"${VERSION}".tgz
@@ -241,6 +243,52 @@ jobs:
             echo "::error title=Missing meta package::Expected ${meta_tarball}."
             exit 1
           fi
+
+          package_version_from_tarball() {
+            tar -xOf "$1" package/package.json \
+              | node -e 'const fs = require("node:fs"); console.log(JSON.parse(fs.readFileSync(0, "utf8")).version);'
+          }
+
+          version_exists() {
+            local version="$1"
+            npm view "${package_name}@${version}" version >/dev/null 2>&1
+          }
+
+          publish_tarball() {
+            local tarball="$1"
+            local tag="$2"
+            local package_version
+            package_version="$(package_version_from_tarball "${tarball}")"
+
+            if version_exists "${package_version}"; then
+              echo "Skipping already published ${package_name}@${package_version}"
+              return
+            fi
+
+            publish_cmd=(npm publish "${GITHUB_WORKSPACE}/${tarball}" --access public)
+            if [[ -n "${tag}" ]]; then
+              publish_cmd+=(--tag "${tag}")
+            fi
+
+            echo "+ ${publish_cmd[*]}"
+            set +e
+            publish_output="$("${publish_cmd[@]}" 2>&1)"
+            publish_status=$?
+            set -e
+            echo "${publish_output}"
+
+            if [[ ${publish_status} -eq 0 ]]; then
+              return
+            fi
+
+            if grep -qiE "previously published|cannot publish over|version already exists" <<< "${publish_output}"; then
+              echo "Skipping already published ${package_name}@${package_version}"
+              return
+            fi
+
+            exit "${publish_status}"
+          }
+
           tarballs=("${platform_tarballs[@]}" "${meta_tarball}")
           for tarball in "${tarballs[@]}"; do
             filename="$(basename "${tarball}")"
@@ -262,10 +310,16 @@ jobs:
                 exit 1
                 ;;
             esac
-            publish_cmd=(npm publish "${GITHUB_WORKSPACE}/${tarball}" --access public)
-            if [[ -n "${tag}" ]]; then
-              publish_cmd+=(--tag "${tag}")
-            fi
-            echo "+ ${publish_cmd[*]}"
-            "${publish_cmd[@]}"
+            publish_tarball "${tarball}" "${tag}"
           done
+
+          dist_tags="$(npm view "${package_name}" dist-tags --json)"
+          DIST_TAGS="${dist_tags}" VERSION="${VERSION}" NPM_TAG="${NPM_TAG}" node <<'NODE'
+          const tags = JSON.parse(process.env.DIST_TAGS);
+          const version = process.env.VERSION;
+          const npmTag = process.env.NPM_TAG;
+          const expectedTag = npmTag || "latest";
+          if (tags[expectedTag] !== version) {
+            throw new Error(`${expectedTag} dist-tag must point to ${version}, got ${tags[expectedTag]}`);
+          }
+          NODE

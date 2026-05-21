@@ -48,6 +48,8 @@ The public repository is intentionally small in CI scope:
   platform payload versions.
 - `npm-publish-codex-unleashed.yml` is manual, main-only, and publishes
   `@lpalbou/codex-unleashed` through npm trusted publishing after bootstrap.
+  It currently ships Linux x64, macOS x64/ARM64, and Windows x64/ARM64 payloads;
+  Linux ARM64 is deferred until that native artifact build is stable.
 
 ## Maintainer release outline
 

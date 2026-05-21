@@ -83,9 +83,10 @@ configure trusted publishing for future releases.
 7. For later releases, run the same workflow with `publish=true` and
    `publish_confirmation=publish-lpalbou-codex-unleashed-<version>`.
 
-The publish job stages seven npm tarballs: the lightweight
-`@lpalbou/codex-unleashed` meta package plus six platform-specific versions of
-the same package. It publishes platform payloads first under platform dist-tags,
+The publish job currently stages six npm tarballs: the lightweight
+`@lpalbou/codex-unleashed` meta package plus five platform-specific versions of
+the same package. Linux ARM64 is deferred until the native artifact build is
+stable. The workflow publishes platform payloads first under platform dist-tags,
 then publishes the meta package under `latest`, `alpha`, or `beta`.
 
 ## Commands
@@ -132,16 +133,19 @@ First npm publication only:
 ```bash
 npm login
 
-for tarball in \
-  dist/npm/codex-npm-linux-*-0.1.0.tgz \
-  dist/npm/codex-npm-darwin-*-0.1.0.tgz \
-  dist/npm/codex-npm-win32-*-0.1.0.tgz
-do
-  npm publish "$tarball" --access public
-done
-
+npm publish dist/npm/codex-npm-linux-x64-0.1.0.tgz --access public --tag linux-x64
+npm publish dist/npm/codex-npm-darwin-x64-0.1.0.tgz --access public --tag darwin-x64
+npm publish dist/npm/codex-npm-darwin-arm64-0.1.0.tgz --access public --tag darwin-arm64
+npm publish dist/npm/codex-npm-win32-x64-0.1.0.tgz --access public --tag win32-x64
+npm publish dist/npm/codex-npm-win32-arm64-0.1.0.tgz --access public --tag win32-arm64
 npm publish dist/npm/codex-npm-0.1.0.tgz --access public
 ```
+
+The final meta package publish is what makes `npm install -g
+@lpalbou/codex-unleashed` resolve the install launcher. If the platform payloads
+exist but `npm view @lpalbou/codex-unleashed@0.1.0 version` returns `E404`,
+publish only `dist/npm/codex-npm-0.1.0.tgz` and complete the npm 2FA/browser
+approval prompt.
 
 After trusted publishing is configured, publish:
 

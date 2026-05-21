@@ -183,7 +183,7 @@ jobs:
                 exit 1
                 ;;
             esac
-            npm publish --dry-run "${tarball}" --access public
+            npm publish --dry-run "${tarball}" --access public --tag dry-run
           done
 
       - uses: actions/upload-artifact@v4

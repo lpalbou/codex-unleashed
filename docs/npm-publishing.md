@@ -49,6 +49,7 @@ Configure npm trusted publishing for the package after the package exists:
 
 ```bash
 npm install -g npm@^11.10.0
+npm --version
 npm trust github @lpalbou/codex-unleashed \
   --repo lpalbou/codex-unleashed \
   --file npm-publish-codex-unleashed.yml \
